@@ -1,0 +1,129 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <time.h>
+#include <unistd.h>
+#include <string.h>
+
+#define MAX_PROCESSES 10
+#define MAX_NAME_LEN 20
+#define LOG_FILE "log.txt"
+
+// Process structure
+typedef struct {
+    int pid;
+    char name[MAX_NAME_LEN];
+    int cpu_usage;     // in %
+    int memory_usage;  // in %
+    bool running;
+    bool flagged;
+} Process;
+
+// Function declarations
+void generate_processes(Process processes[], int count);
+void display_header();
+void display_process(Process p);
+void analyze_process(Process* p, FILE* log_file);
+void print_suggestion(const char* message, FILE* log_file);
+void log_process_info(Process p, FILE* log_file);
+
+int main() {
+    Process processes[MAX_PROCESSES];
+    FILE* log_file = fopen(LOG_FILE, "w");
+    if (!log_file) {
+        printf("Failed to create log file.\n");
+        return 1;
+    }
+
+    srand(time(NULL));
+    generate_processes(processes, MAX_PROCESSES);
+
+    display_header();
+
+    for (int i = 0; i < MAX_PROCESSES; i++) {
+        display_process(processes[i]);
+        log_process_info(processes[i], log_file);
+        analyze_process(&processes[i], log_file);
+        sleep(1); // simulate real-time scanning
+    }
+
+    printf("\n✅ Monitoring complete. %d processes scanned.\n", MAX_PROCESSES);
+    fprintf(log_file, "✅ Monitoring complete. %d processes scanned.\n", MAX_PROCESSES);
+    fclose(log_file);
+    return 0;
+}
+
+// Generate random process stats
+void generate_processes(Process processes[], int count) {
+    const char* sample_names[] = {"chrome", "vscode", "discord", "systemd", "explorer", "python", "gcc", "firefox", "docker", "node"};
+
+    for (int i = 0; i < count; i++) {
+        processes[i].pid = 1000 + i;
+        snprintf(processes[i].name, MAX_NAME_LEN, "%s", sample_names[i % 10]);
+        processes[i].cpu_usage = rand() % 101;
+        processes[i].memory_usage = rand() % 101;
+        processes[i].running = true;
+        processes[i].flagged = false;
+    }
+}
+
+// Print table header
+void display_header() {
+    printf("🧠 AI-Powered OS Monitor (C Edition)\n");
+    printf("===========================================\n");
+    printf("| PID  | Process     | CPU  | MEM  | State |\n");
+    printf("===========================================\n");
+}
+
+// Print process status in a table
+void display_process(Process p) {
+    printf("| %-4d | %-11s | %-4d%% | %-4d%% | %-6s |\n",
+           p.pid, p.name, p.cpu_usage, p.memory_usage,
+           p.running ? "RUN" : "STOP");
+}
+
+// Log process details
+void log_process_info(Process p, FILE* log_file) {
+    fprintf(log_file, "P%d (%s): CPU=%d%%, MEM=%d%%, STATE=%s\n",
+            p.pid, p.name, p.cpu_usage, p.memory_usage,
+            p.running ? "RUNNING" : "STOPPED");
+}
+
+// Analyze for AI decision-making
+void analyze_process(Process* p, FILE* log_file) {
+    printf("🔍 Analyzing P%d...\n", p->pid);
+    fprintf(log_file, "Analyzing P%d...\n", p->pid);
+
+    // Rule 1: Extreme usage
+    if (p->cpu_usage > 85 && p->memory_usage > 85) {
+        printf("🔥 CRITICAL: Process %s is overloading CPU and Memory!\n", p->name);
+        print_suggestion("Consider terminating or restarting the process.", log_file);
+        p->flagged = true;
+    }
+    // Rule 2: CPU spike
+    else if (p->cpu_usage > 85) {
+        printf("⚠️  CPU Spike in %s\n", p->name);
+        print_suggestion("Throttle or lower process priority.", log_file);
+        p->flagged = true;
+    }
+    // Rule 3: Memory overuse
+    else if (p->memory_usage > 90) {
+        printf("⚠️  High Memory Usage in %s\n", p->name);
+        print_suggestion("Optimize memory or enable swapping.", log_file);
+        p->flagged = true;
+    }
+    // Normal process
+    else {
+        printf("✅ %s is operating normally.\n", p->name);
+        fprintf(log_file, "P%d is healthy.\n", p->pid);
+    }
+
+    printf("-------------------------------------------\n");
+    fprintf(log_file, "-------------------------------------------\n");
+}
+
+// Print suggestions from "AI"
+void print_suggestion(const char* message, FILE* log_file) {
+    printf("💡 Suggestion: %s\n", message);
+    fprintf(log_file, "Suggestion: %s\n", message);
+}
